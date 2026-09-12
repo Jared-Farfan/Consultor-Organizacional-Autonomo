@@ -9,17 +9,21 @@
   <body>
     <main>
       <header class="masthead">
-        <div>
-          <p class="eyebrow">ORGANIZATIONAL INTELLIGENCE / V2</p>
-          <h1>Consultor Organizacional Autonomo</h1>
-          <p class="subtitle">Diagnostico trazable de flujo, capacidad y cambio organizacional.</p>
+        <div class="hero-copy">
+          <p class="eyebrow">Organizational intelligence</p>
+          <h1>Decisiones claras para <span>equipos complejos.</span></h1>
+          <p class="subtitle">Una lectura trazable de flujo, capacidad y cambio organizacional para priorizar con confianza.</p>
         </div>
-        <div id="environment" class="environment">Conectando...</div>
+        <div class="hero-status">
+          <div id="environment" class="environment">Conectando...</div>
+          <p>Basado en evidencia operativa, no en suposiciones.</p>
+        </div>
       </header>
 
-      <section class="control-panel">
-        <div>
+      <section class="control-panel" aria-label="Nueva investigacion">
+        <div class="control-copy">
           <p class="section-label">Nueva investigacion</p>
+          <h2>Explora un escenario</h2>
           <p>El analisis calcula primero. La narrativa usa solo evidencia ya medida.</p>
         </div>
         <label>
@@ -30,13 +34,13 @@
           Costo hora (USD)
           <input id="hourly-cost" type="number" min="1" value="55" />
         </label>
-        <button id="investigate">Iniciar diagnostico</button>
+        <button id="investigate">Crear diagnostico</button>
       </section>
 
-      <p id="status" class="status">Listo para analizar el banco de pruebas.</p>
+      <p id="status" class="status" role="status">Listo para analizar el banco de pruebas.</p>
 
       <section id="history-panel" class="history-panel" hidden>
-        <div><p class="section-label">Historial de sesion</p><h2>Investigaciones disponibles</h2></div>
+          <div><p class="section-label">Historial de sesion</p><h2>Investigaciones disponibles</h2></div>
         <div id="history" class="history"></div>
       </section>
 
