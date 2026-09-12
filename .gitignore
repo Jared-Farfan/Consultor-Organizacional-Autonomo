@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+*.py[cod]
+data/derived/*.duckdb
+data/derived/*.parquet
+data/derived/*.csv
+data/legacy/v1/*.duckdb
+data/private/
+PLAN.md

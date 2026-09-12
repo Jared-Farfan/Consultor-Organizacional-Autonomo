@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "require_evidence": true,
+  "macro_change_minimum_criteria": 2,
+  "allow_macro_change": true,
+  "llm_may_calculate_metrics": false,
+  "llm_may_access_private_evaluation": false,
+  "allowed_data_sources": ["jsonl", "duckdb", "postgres"]
+}
