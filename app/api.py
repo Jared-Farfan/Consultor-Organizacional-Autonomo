@@ -17,8 +17,8 @@ from app.ingestion import load_event_log_v2, load_taxonomy, write_observed_ticke
 from app.llm import answer_question
 from app.storage import materialize_events
 
-app = FastAPI(title="Consultor Organizacional Autonomo", version="0.1.0")
-_investigations: dict[str, dict] = {}
+app = FastAPI(title="Autonomous Organizational Consultant", version="0.1.0")
+_active_investigation: dict | None = None
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.cors_origins), allow_credentials=False,
@@ -61,6 +61,12 @@ def _agent(hourly_cost: float = 55.0) -> RestructuringAgent:
     return RestructuringAgent(events, hourly_cost, taxonomy)
 
 
+def _get_active_investigation(investigation_id: str) -> dict:
+    if not _active_investigation or _active_investigation["meta"]["id"] != investigation_id:
+        raise HTTPException(status_code=404, detail="Investigation not found")
+    return _active_investigation
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment, "data_source": settings.data_source}
@@ -99,6 +105,7 @@ def materialize_demo_dataset() -> dict:
 
 @app.post("/investigations", status_code=201)
 def create_investigation(request: InvestigationRequest) -> dict:
+    global _active_investigation
     try:
         result = _agent(request.hourly_cost).investigate()
     except RuntimeError as error:
@@ -107,52 +114,33 @@ def create_investigation(request: InvestigationRequest) -> dict:
     created_at = datetime.now(timezone.utc).isoformat()
     result["meta"] = {
         "id": investigation_id,
-        "label": request.label.strip() or f"Investigacion {created_at[:16].replace('T', ' ')} UTC",
+        "label": request.label.strip() or f"Investigation {created_at[:16].replace('T', ' ')} UTC",
         "created_at": created_at,
         "hourly_cost": request.hourly_cost,
     }
-    _investigations[investigation_id] = result
+    _active_investigation = result
     return {"id": investigation_id, "meta": result["meta"], "trace": result["trace"], "report": result["report"]}
-
-
-@app.get("/investigations")
-def list_investigations() -> dict:
-    items = []
-    for investigation_id, result in _investigations.items():
-        meta = result.get("meta", {"id": investigation_id, "label": investigation_id, "created_at": "", "hourly_cost": 0})
-        items.append({
-            **meta,
-            "findings": result["report"]["executive_summary"]["findings"],
-            "estimated_annual_cost": result["report"]["executive_summary"]["estimated_annual_cost"],
-        })
-    return {"items": sorted(items, key=lambda item: item["created_at"], reverse=True)}
 
 
 @app.get("/investigations/{investigation_id}")
 def get_investigation(investigation_id: str) -> dict:
-    try:
-        return _investigations[investigation_id]
-    except KeyError as error:
-        raise HTTPException(status_code=404, detail="Investigation not found") from error
+    return _get_active_investigation(investigation_id)
 
 
 @app.post("/investigations/{investigation_id}/questions")
 def ask_question(investigation_id: str, request: QuestionRequest) -> dict:
-    if investigation_id not in _investigations:
-        raise HTTPException(status_code=404, detail="Investigation not found")
     try:
-        return answer_question(request.question, _investigations[investigation_id]["report"], settings)
+        return answer_question(request.question, _get_active_investigation(investigation_id)["report"], settings)
     except (RuntimeError, ValueError) as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/investigations/{investigation_id}/trace")
 def stream_trace(investigation_id: str) -> StreamingResponse:
-    if investigation_id not in _investigations:
-        raise HTTPException(status_code=404, detail="Investigation not found")
+    investigation = _get_active_investigation(investigation_id)
 
     def events():
         import json
-        for step in _investigations[investigation_id]["trace"]:
+        for step in investigation["trace"]:
             yield f"data: {json.dumps(step)}\n\n"
     return StreamingResponse(events(), media_type="text/event-stream")

@@ -1,27 +1,27 @@
-# Consultor Organizacional Autonomo
+# Autonomous Organizational Consultant
 
-Aplicacion de diagnostico organizacional que convierte eventos operativos de tickets en metricas trazables, hallazgos priorizados y propuestas de cambio. Esta construida con el principio **compute-first, LLM-last**: el codigo calcula las cifras y el LLM, si se activa, solo redacta respuestas a partir de evidencia ya calculada.
+An organizational diagnostic application that turns operational ticket events into traceable metrics, prioritized findings, and change proposals. It follows a **compute-first, LLM-last** principle: the code calculates figures, while an optional LLM only drafts answers from evidence that has already been calculated.
 
-> Los datos incluidos son sinteticos y experimentales. Los equipos, personas y costos que aparecen en la demo no representan informacion real ni deben usarse para tomar decisiones reales sin validar los datos de origen.
+> The included data is synthetic and experimental. Teams, people, and costs in the demo do not represent real information and must not be used for real decisions without validating the source data.
 
-## Que hace
+## What It Does
 
-- Mide lead time, tiempo en cola, handoffs, reasignaciones y concentracion de actividad.
-- Identifica cuellos de botella, aprobaciones lentas, dependencia de una persona, deuda operativa repetitiva, ping-pong de triaje y desalineacion con el trabajo core.
-- Clasifica cada hallazgo como tactico, estructural, organizacional o estrategico.
-- Estima el costo anual de cada hallazgo a partir del costo hora configurado.
-- Propone bloques organizativos y un cambio gradual por horizontes, con gates verificables.
-- Mantiene una traza que explica que herramienta genero cada conclusion.
+- Measures lead time, queue time, handoffs, reassignments, and activity concentration.
+- Identifies bottlenecks, slow approvals, single-person dependencies, recurring operational debt, triage ping-pong, and misalignment with core work.
+- Classifies every finding as tactical, structural, organizational, or strategic.
+- Estimates each finding's annual cost from the configured hourly cost.
+- Proposes organizational blocks and progressive change horizons with verifiable gates.
+- Retains a trace explaining which tool produced each conclusion.
 
-## Requisitos
+## Requirements
 
-- Python 3.11 o superior.
-- Docker y Docker Compose solo si se usara PostgreSQL en contenedor.
-- Una clave de un proveedor OpenAI-compatible solo si se desea habilitar respuestas LLM.
+- Python 3.11 or later.
+- Docker and Docker Compose only when using PostgreSQL in a container.
+- An API key for an OpenAI-compatible provider only when enabling LLM answers.
 
-## Inicio rapido
+## Quick Start
 
-El modo mas simple lee el JSONL incluido directamente, sin Docker ni base de datos.
+The simplest mode reads the included JSONL directly, with no Docker or database required.
 
 ```bash
 git clone https://github.com/Jared-Farfan/Consultor-Organizacional-Autonomo.git
@@ -32,7 +32,7 @@ pip install -r requirements.txt
 cp .env.template .env
 ```
 
-En `.env`, establezca estas variables para usar el archivo JSONL incluido:
+Set the following variables in `.env` to use the included JSONL file:
 
 ```dotenv
 DATA_SOURCE=jsonl
@@ -42,87 +42,86 @@ ORG_CHART_PATH=data/raw/org_chart_declared_v2.json
 LLM_ENABLED=false
 ```
 
-Ejecute el servidor:
+Start the server:
 
 ```bash
 uvicorn app.api:app --reload
 ```
 
-Abra `http://localhost:8000/`. Confirme la fuente elegida con:
+Open `http://localhost:8000/`. Confirm the selected source with:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-La respuesta debe indicar `"data_source":"jsonl"` si se siguio el inicio rapido.
+The response should report `"data_source":"jsonl"` when following the quick start.
 
-## Uso de la interfaz
+## Using the Interface
 
-1. Abra la aplicacion en `http://localhost:8000/`.
-2. Escriba un nombre opcional para identificar el escenario, por ejemplo `Costo base`.
-3. Defina **Costo hora (USD)**. Es el valor estimado de una hora de trabajo empleada en los problemas detectados; no es un cobro de la aplicacion ni del LLM.
-4. Seleccione **Crear diagnostico**.
-5. Revise las metricas, los hallazgos, la cascada de horizontes y la traza de investigacion.
-6. Cree otra investigacion con otro costo hora para comparar escenarios. El historial permite alternar entre las investigaciones creadas durante la sesion.
+1. Open the application at `http://localhost:8000/`.
+2. Enter an optional name to identify the scenario, such as `Baseline cost`.
+3. Set **Hourly cost (USD)**. It is the estimated value of one hour of work involved in detected problems; it is not an application or LLM charge.
+4. Select **Create diagnosis**.
+5. Review the metrics, findings, horizon cascade, and investigation trace.
+6. Create another investigation with a different hourly cost when you want to evaluate a new scenario. It replaces the current result.
 
-El costo anual es una estimacion: cada detector multiplica las horas observadas o inferidas por su regla por el costo hora indicado. Por ejemplo, 1.000 horas de espera con un costo hora de 55 USD equivalen a 55.000 USD anuales estimados. No sustituye una contabilidad financiera validada.
+Annual cost is an estimate: every detector multiplies hours observed or inferred by its rule by the selected hourly cost. For example, 1,000 hours of waiting at an hourly cost of 55 USD produces an estimated annual cost of 55,000 USD. It is not a replacement for validated financial accounting.
 
-Las investigaciones se almacenan **en memoria**. Se pierden al reiniciar la API; PostgreSQL almacena los eventos de entrada, no el historial de diagnosticos.
+Only the active investigation is stored **in memory** for questions and traces. Creating another diagnosis replaces it, and it is lost when the API restarts. PostgreSQL stores input events, not diagnostic history.
 
-## Uso de la API
+## Using the API
 
-| Ruta | Uso |
+| Route | Use |
 |---|---|
-| `GET /` | Interfaz web. |
-| `GET /health` | Estado del servicio y fuente de datos activa. |
-| `GET /config/status` | Estado seguro de configuracion, sin secretos. |
-| `GET /demo/report` | Ejecuta un diagnostico sin guardarlo en el historial. |
-| `POST /investigations` | Crea y guarda una investigacion de sesion. |
-| `GET /investigations` | Lista las investigaciones de la sesion. |
-| `GET /investigations/{id}` | Recupera el reporte y la traza de una investigacion. |
-| `POST /investigations/{id}/questions` | Formula una pregunta sobre la evidencia de una investigacion. |
-| `GET /investigations/{id}/trace` | Entrega la traza como Server-Sent Events. |
-| `POST /datasets/materialize` | Genera los artefactos derivados CSV y DuckDB desde la fuente activa. |
+| `GET /` | Web interface. |
+| `GET /health` | Service status and active data source. |
+| `GET /config/status` | Safe configuration status without secrets. |
+| `GET /demo/report` | Runs a diagnosis without saving it to session history. |
+| `POST /investigations` | Creates the active investigation, replacing any previous result. |
+| `GET /investigations/{id}` | Retrieves the active investigation report and trace. |
+| `POST /investigations/{id}/questions` | Asks a question about an investigation's evidence. |
+| `GET /investigations/{id}/trace` | Streams the trace as Server-Sent Events. |
+| `POST /datasets/materialize` | Generates derived CSV and DuckDB artifacts from the active source. |
 
-Crear una investigacion por API:
+Create an investigation through the API:
 
 ```bash
 curl -X POST http://localhost:8000/investigations \
   -H "Content-Type: application/json" \
-  -d '{"label":"Escenario costo base","hourly_cost":55}'
+  -d '{"label":"Baseline cost scenario","hourly_cost":55}'
 ```
 
-El campo `hourly_cost` debe ser mayor que cero. Si no se envia, usa `55`. El campo `label` es opcional y admite hasta 80 caracteres.
+`hourly_cost` must be greater than zero. It defaults to `55` when omitted. `label` is optional and supports up to 80 characters.
 
-Preguntar sobre el diagnostico creado:
+Ask about the newly created diagnosis:
 
 ```bash
 curl -X POST http://localhost:8000/investigations/INVESTIGATION_ID/questions \
   -H "Content-Type: application/json" \
-  -d '{"question":"Que accion reduce primero el tiempo de onboarding?"}'
+  -d '{"question":"Which action should reduce onboarding time first?"}'
 ```
 
-Reemplace `INVESTIGATION_ID` por el valor `id` de la respuesta al crear la investigacion.
+Replace `INVESTIGATION_ID` with the `id` returned by the create-investigation response.
 
-## Fuentes de datos
+## Data Sources
 
-La aplicacion admite tres valores en `DATA_SOURCE`:
+The application accepts three `DATA_SOURCE` values:
 
-| Fuente | Cuando usarla | Configuracion necesaria |
+| Source | When to use it | Required configuration |
 |---|---|---|
-| `jsonl` | Desarrollo local o analisis directo de un log V2. | `RAW_EVENT_LOG_PATH`, `TAXONOMY_PATH`, `ORG_CHART_PATH`. |
-| `duckdb` | Consultas locales sobre una version materializada. | `DUCKDB_PATH` y el archivo generado. |
-| `postgres` | Entorno compartido o servicio persistente. | `DATABASE_URL` y tablas cargadas. |
+| `jsonl` | Local development or direct analysis of a V2 event log. | `RAW_EVENT_LOG_PATH`, `TAXONOMY_PATH`, `ORG_CHART_PATH`. |
+| `duckdb` | Local queries against a materialized version. | `DUCKDB_PATH` and a generated database file. |
+| `postgres` | Shared or persistent service environments. | `DATABASE_URL` and loaded tables. |
 
-Las rutas relativas se resuelven desde la raiz del proyecto. Las variables del entorno de la shell tienen prioridad sobre `.env`, por lo que se puede probar una fuente sin editar el archivo:
+Relative paths are resolved from the project root. Shell environment variables take precedence over `.env`, so a source can be tested without editing that file:
 
 ```bash
 DATA_SOURCE=jsonl LLM_ENABLED=false uvicorn app.api:app --reload
 ```
 
-### JSONL: fuente directa
+### JSONL: Direct Source
 
-`data/raw/event_log_v2.jsonl` es la fuente canonica incluida. Cada linea es un objeto JSON con, como minimo:
+`data/raw/event_log_v2.jsonl` is the included canonical source. Every line is a JSON object with at least:
 
 ```json
 {
@@ -135,59 +134,59 @@ DATA_SOURCE=jsonl LLM_ENABLED=false uvicorn app.api:app --reload
   "payload": {
     "category": "soporte_reactivo",
     "declared_team": "team_alpha",
-    "title": "Descripcion del trabajo"
+    "title": "Work description"
   }
 }
 ```
 
-El cargador normaliza el log V2 y genera eventos operativos como `assigned`, `handoff`, `approval_requested`, `approval_decided`, `completed_stage` y `resolved`. Para que las metricas sean comparables, un dataset propio debe conservar la semantica de transiciones del formato V2, fechas ISO 8601 y hashes estables en `actor_hash`.
+The loader normalizes the V2 log and derives operational events such as `assigned`, `handoff`, `approval_requested`, `approval_decided`, `completed_stage`, and `resolved`. To keep metrics comparable, a custom dataset must preserve V2 transition semantics, ISO 8601 timestamps, and stable hashes in `actor_hash`.
 
-El CSV en `data/raw/event_log_v2.csv` es una exportacion para inspeccion e interoperabilidad; **no** es la fuente que consume la API. Convierta su CSV a JSONL V2 o importe los eventos en PostgreSQL antes de usarlo.
+`data/raw/event_log_v2.csv` is an export for inspection and interoperability; it is **not** the API's input source. Convert a CSV to V2 JSONL or import its events into PostgreSQL before using it.
 
-Tambien debe proporcionar estos archivos coherentes con las categorias y equipos del log:
+Provide these files as well, keeping categories and teams consistent with the log:
 
-- `business_taxonomy_v2.json`: mapa `{categoria: {label, strategic_value}}`. `strategic_value` usa `alto`, `medio` o `bajo`.
-- `org_chart_declared_v2.json`: objeto con `teams` y `members`; cada miembro usa `actor_id_hash`, `declared_team` y `role`.
+- `business_taxonomy_v2.json`: a `{category: {label, strategic_value}}` map. `strategic_value` accepts `alto`, `medio`, or `bajo` in the included V2 dataset.
+- `org_chart_declared_v2.json`: an object with `teams` and `members`; each member uses `actor_id_hash`, `declared_team`, and `role`.
 
-Ejemplo para cambiar a archivos propios:
+Example configuration for custom files:
 
 ```dotenv
 DATA_SOURCE=jsonl
-RAW_EVENT_LOG_PATH=/ruta/segura/mis_eventos.jsonl
-TAXONOMY_PATH=/ruta/segura/mi_taxonomia.json
-ORG_CHART_PATH=/ruta/segura/mi_organizacion.json
+RAW_EVENT_LOG_PATH=/secure/path/my_events.jsonl
+TAXONOMY_PATH=/secure/path/my_taxonomy.json
+ORG_CHART_PATH=/secure/path/my_organization.json
 ```
 
-Para integraciones con Jira, el adaptador `app.ingestion.normalize_jira_ticket()` transforma un ticket tipo Jira al contrato interno `Event` y elimina nombres o correos, reemplazandolos por hashes. Los conectores de Zendesk, ServiceNow u otras herramientas deben producir el mismo contrato y no leer material privado de evaluacion.
+For Jira integrations, `app.ingestion.normalize_jira_ticket()` transforms a Jira-like ticket into the internal `Event` contract and replaces names or emails with hashes. Connectors for Zendesk, ServiceNow, or other tools should produce the same contract and must not read private evaluation material.
 
-### DuckDB: fuente local materializada
+### DuckDB: Local Materialized Source
 
-Genere los artefactos derivados del dataset V2 incluido:
+Generate derived artifacts from the included V2 dataset:
 
 ```bash
 . .venv/bin/activate
 python -m app.prepare_data
 ```
 
-Esto crea, dentro de `data/derived/`:
+This creates the following files in `data/derived/`:
 
-- `tickets_observed_v2.csv`, resumen de hechos observables por ticket.
-- `organizational_events_v2.duckdb`, tabla `events` normalizada.
+- `tickets_observed_v2.csv`, an observable-facts summary per ticket.
+- `organizational_events_v2.duckdb`, a normalized `events` table.
 
-Luego seleccione DuckDB:
+Then select DuckDB:
 
 ```dotenv
 DATA_SOURCE=duckdb
 DUCKDB_PATH=data/derived/organizational_events_v2.duckdb
 ```
 
-El archivo DuckDB se abre en modo de solo lectura durante el diagnostico. `app.prepare_data` esta preparado para el dataset V2 incluido; para datos propios, carguelos primero con el mismo esquema `events` que se define en `db/init/001_schema.sql`, o use el flujo PostgreSQL.
+The DuckDB database is opened read-only during diagnosis. `app.prepare_data` is built for the included V2 dataset; for custom data, first load it into an `events` table using the schema in `db/init/001_schema.sql`, or use the PostgreSQL workflow.
 
-### PostgreSQL: fuente compartida
+### PostgreSQL: Shared Source
 
-1. Copie `.env.template` a `.env` y cambie `POSTGRES_PASSWORD` y `DATABASE_URL` por valores reales.
-2. Mantenga `DATA_SOURCE=postgres`.
-3. Inicie PostgreSQL y cargue los eventos configurados por las rutas JSONL, taxonomia y organigrama:
+1. Copy `.env.template` to `.env` and replace `POSTGRES_PASSWORD` and `DATABASE_URL` with real values.
+2. Keep `DATA_SOURCE=postgres`.
+3. Start PostgreSQL and load the events configured by the JSONL, taxonomy, and organization paths:
 
 ```bash
 docker compose up -d postgres
@@ -196,55 +195,55 @@ python scripts/import_v2_to_postgres.py --replace
 uvicorn app.api:app --reload
 ```
 
-`--replace` vacia y vuelve a cargar `events`, `org_members`, `org_teams`, `business_taxonomy` y `dataset_metadata`; uselo solo cuando se desee reemplazar la carga anterior. La API consulta Postgres dentro de una transaccion de solo lectura.
+`--replace` clears and reloads `events`, `org_members`, `org_teams`, `business_taxonomy`, and `dataset_metadata`; only use it when replacing the previous import. The API reads from PostgreSQL in a read-only transaction.
 
-Para ejecutar tambien la API en Docker, despues de importar:
+To run the API in Docker after importing data:
 
 ```bash
 docker compose --profile app up -d api
 ```
 
-Revise los servicios con `docker compose ps` y los logs con `docker compose logs -f postgres` o `docker compose logs -f api`.
+Inspect services with `docker compose ps` and logs with `docker compose logs -f postgres` or `docker compose logs -f api`.
 
-## LLM opcional
+## Optional LLM
 
-Sin LLM, las preguntas devuelven una respuesta determinista basada en los hallazgos calculados. Para usar Ollama Cloud u otro endpoint OpenAI-compatible, configure:
+Without an LLM, questions receive a deterministic answer based on calculated findings. To use Ollama Cloud or another OpenAI-compatible endpoint, configure:
 
 ```dotenv
 LLM_ENABLED=true
 LLM_BASE_URL=https://ollama.com/v1
-LLM_API_KEY=su_clave_secreta
+LLM_API_KEY=your_secret_key
 LLM_MODEL=gpt-oss:20b
 LLM_TEMPERATURE=0
 LLM_STRUCTURED_OUTPUTS=true
 ```
 
-El modelo recibe solo el resumen ejecutivo, las metricas, los hallazgos y la cascada de horizontes de la investigacion seleccionada. No recibe secretos, los archivos privados de evaluacion ni datos crudos adicionales. El modelo no calcula metricas ni estima importes nuevos.
+The model receives only the executive summary, metrics, findings, and horizon cascade for the selected investigation. It does not receive secrets, private evaluation files, or additional raw data. The model does not calculate metrics or estimate new amounts.
 
-## Seguridad y datos
+## Security and Data
 
-- `.env` contiene secretos locales y esta excluido de Git. Nunca lo publique.
-- `data/private/` contiene material de evaluacion y ground truth. La API, cargadores y detectores no lo usan como entrada.
-- `data/derived/` contiene resultados regenerables y esta excluido de Git.
-- La fuente activa de la demo son 6.000 tickets sinteticos y 36.910 eventos en `data/raw/event_log_v2.jsonl`.
-- Antes de cargar informacion real, anonimice identificadores personales y revise las politicas de retencion y acceso de su organizacion.
+- `.env` contains local secrets and is excluded from Git. Never publish it.
+- `data/private/` contains evaluation material and ground truth. The API, loaders, and detectors do not use it as input.
+- `data/derived/` contains regenerable output and is excluded from Git.
+- The active demo source contains 6,000 synthetic tickets and 36,910 events in `data/raw/event_log_v2.jsonl`.
+- Before loading real information, anonymize personal identifiers and review your organization's retention and access policies.
 
-## Pruebas y verificacion
+## Tests and Verification
 
-Ejecute la suite completa con el entorno virtual activo:
+Run the full suite with the virtual environment available:
 
 ```bash
 .venv/bin/python -m pytest
 ```
 
-La suite cubre configuracion segura, carga y normalizacion V2, deteccion de hallazgos y comportamiento del agente. Antes de operar, valide tambien la fuente de datos activa:
+The suite covers secure configuration, V2 loading and normalization, finding detection, and agent behavior. Before operating the service, also validate the active data source:
 
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/config/status
 ```
 
-## Herramientas del agente
+## Agent Tools
 
 - `get_flow_metrics`
 - `get_state_queue_times`
@@ -256,4 +255,4 @@ curl http://localhost:8000/config/status
 - `simulate_change`
 - `simulate_horizon_cascade`
 
-Un cambio macro requiere al menos dos de tres criterios calculados: alcance estructural, persistencia e impacto en el core. Esta regla evita recomendar una reorganizacion total ante una friccion aislada.
+A macro change requires at least two of three calculated criteria: structural scope, persistence, and core impact. This rule prevents recommending a full reorganization for an isolated friction point.

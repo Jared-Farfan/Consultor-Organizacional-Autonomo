@@ -1,8 +1,16 @@
 let investigationId = null;
-const investigations = new Map();
 const $ = (id) => document.getElementById(id);
 const money = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value || 0);
 const percent = (value) => `${((value || 0) * 100).toFixed(1)}%`;
+const categoryLabels = {
+  cumplimiento_regulatorio: 'Regulatory compliance',
+  deuda_tecnica_critica: 'Critical technical debt',
+  mantenimiento_operativo: 'Operational maintenance',
+  onboarding_cliente: 'Customer onboarding',
+  retencion_clientes: 'Customer retention',
+  soporte_reactivo: 'Reactive support',
+};
+const criticalityLabels = { alto: 'High', medio: 'Medium', bajo: 'Low' };
 
 function setStatus(message, error = false) { const node = $('status'); node.textContent = message; node.style.color = error ? '#bc4a4a' : ''; }
 function metric(label, value) { return `<article class="metric"><div class="label">${label}</div><div class="value">${value}</div></article>`; }
@@ -48,85 +56,52 @@ async function loadStatus() {
   try {
     const response = await fetch('/config/status'); const config = await response.json();
     $('environment').textContent = `${config.environment} / ${config.data_source} / LLM ${config.llm_enabled ? 'ON' : 'OFF'}`;
-  } catch { $('environment').textContent = 'API NO DISPONIBLE'; }
+  } catch { $('environment').textContent = 'API UNAVAILABLE'; }
 }
 
 function render(report, trace) {
   const summary = report.executive_summary;
   $('metrics').innerHTML = [
-    metric('Tickets analizados', report.flow_metrics.ticket_count.toLocaleString()),
-    metric('Lead time promedio', `${report.flow_metrics.avg_lead_hours}h`),
-    metric('Queue time promedio', `${report.flow_metrics.avg_queue_hours}h`),
-    metric('Capacidad fuera core', `${summary.capacity_outside_core_pct}%`),
-    metric('Costo anual estimado', money(summary.estimated_annual_cost)),
+    metric('Tickets analyzed', report.flow_metrics.ticket_count.toLocaleString('en-US')),
+    metric('Average lead time', `${report.flow_metrics.avg_lead_hours}h`),
+    metric('Average queue time', `${report.flow_metrics.avg_queue_hours}h`),
+    metric('Capacity outside core', `${summary.capacity_outside_core_pct}%`),
+    metric('Estimated annual cost', money(summary.estimated_annual_cost)),
   ].join('');
-  $('alignment').innerHTML = report.effort_value_matrix.rows.map((row) => `<div class="matrix-row"><span>${row.category.replaceAll('_',' ')}</span><div class="bar"><span style="width:${row.capacity_share * 100}%"></span></div><span class="badge">${percent(row.capacity_share)} / ${row.strategic_criticality}</span></div>`).join('');
-  $('handoffs').innerHTML = report.handoff_graph.team_edges.slice(0, 6).map((edge) => `<div class="handoff"><span>${edge.from_team}</span><span class="arrow">-></span><span>${edge.to_team}</span><strong>${edge.handoffs}</strong></div>`).join('') || '<p>Sin handoffs observados.</p>';
+  $('alignment').innerHTML = report.effort_value_matrix.rows.map((row) => `<div class="matrix-row"><span>${categoryLabels[row.category] || row.category.replaceAll('_', ' ')}</span><div class="bar"><span style="width:${row.capacity_share * 100}%"></span></div><span class="badge">${percent(row.capacity_share)} / ${criticalityLabels[row.strategic_criticality] || row.strategic_criticality}</span></div>`).join('');
+  $('handoffs').innerHTML = report.handoff_graph.team_edges.slice(0, 6).map((edge) => `<div class="handoff"><span>${edge.from_team}</span><span class="arrow">-></span><span>${edge.to_team}</span><strong>${edge.handoffs}</strong></div>`).join('') || '<p>No handoffs observed.</p>';
   const findings = Object.values(report.recommendations_by_severity).flat();
   $('findings').innerHTML = findings.map((finding) => `<article class="finding ${finding.severity}"><div class="meta"><span class="chip">${finding.severity}</span><span class="chip">${finding.horizon}</span><span class="chip">${money(finding.annual_cost)}</span></div><h3>${finding.title}</h3><p>${finding.recommendation}</p><p>${finding.evidence[0]}</p></article>`).join('');
-  $('horizons').innerHTML = report.horizon_cascade.map((item) => `<article class="horizon"><h3>${item.horizon} / ${item.window}</h3><p>${item.action}</p><p class="gate">Gate: ${item.advance_gate}</p><p>Lead time proyectado: ${item.scenario.projected_lead_hours}h</p></article>`).join('');
+  $('horizons').innerHTML = report.horizon_cascade.map((item) => `<article class="horizon"><h3>${item.horizon} / ${item.window}</h3><p>${item.action}</p><p class="gate">Gate: ${item.advance_gate}</p><p>Projected lead time: ${item.scenario.projected_lead_hours}h</p></article>`).join('');
   $('trace').innerHTML = trace.map((step) => `<li><strong>${step.tool}</strong><span>${step.hypothesis}</span><br>${step.conclusion}</li>`).join('');
   $('dashboard').hidden = false;
 }
 
-function renderHistory() {
-  const records = [...investigations.values()].sort((left, right) => right.meta.created_at.localeCompare(left.meta.created_at));
-  $('history-panel').hidden = records.length === 0;
-  $('history').innerHTML = records.map((record) => `<button class="history-item ${record.meta.id === investigationId ? 'active' : ''}" data-id="${record.meta.id}"><strong>${escapeHtml(record.meta.label)}</strong><span>${new Date(record.meta.created_at).toLocaleString()} / ${record.meta.findings || record.report?.executive_summary.findings || '?'} hallazgos</span></button>`).join('');
-  document.querySelectorAll('.history-item').forEach((button) => button.addEventListener('click', () => selectInvestigation(button.dataset.id)));
-}
-
-async function selectInvestigation(id) {
-  let record = investigations.get(id);
-  try {
-    if (!record?.report) {
-      const response = await fetch(`/investigations/${id}`); const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'No se pudo cargar la investigacion');
-      record = data; investigations.set(id, record);
-    }
-    investigationId = id; render(record.report, record.trace); renderHistory();
-    setStatus(`Mostrando: ${record.meta.label}`);
-  } catch (error) { setStatus(error.message, true); }
-}
-
 function storeInvestigation(data) {
-  data.meta.findings = data.report.executive_summary.findings;
-  investigations.set(data.id, data);
   investigationId = data.id;
   render(data.report, data.trace);
-  renderHistory();
-}
-
-async function loadHistory() {
-  try {
-    const response = await fetch('/investigations'); const data = await response.json();
-    if (!response.ok) return;
-    data.items.forEach((item) => investigations.set(item.id, { id: item.id, meta: item }));
-    renderHistory();
-  } catch { /* The dashboard remains usable if history is unavailable. */ }
 }
 
 $('investigate').addEventListener('click', async () => {
   const hourly_cost = Number($('hourly-cost').value);
   const label = $('investigation-label').value.trim();
-  setStatus('Ejecutando herramientas deterministas y simulaciones...');
+  setStatus('Running deterministic tools and simulations...');
   $('investigate').disabled = true;
   try {
     const response = await fetch('/investigations', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({hourly_cost, label}) });
-    const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'No se pudo crear la investigacion');
-    storeInvestigation(data); setStatus(`Investigacion completada con ${data.report.executive_summary.findings} hallazgos. Puedes crear otra para comparar.`);
+    const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'Could not create the investigation');
+    storeInvestigation(data); setStatus(`Investigation completed with ${data.report.executive_summary.findings} findings. Creating another diagnosis replaces this result.`);
   } catch (error) { setStatus(error.message, true); } finally { $('investigate').disabled = false; }
 });
 
 $('question-form').addEventListener('submit', async (event) => {
-  event.preventDefault(); if (!investigationId) return setStatus('Inicie una investigacion antes de preguntar.', true);
-  const question = $('question').value; setStatus('Consultando evidencia calculada...');
+  event.preventDefault(); if (!investigationId) return setStatus('Start an investigation before asking a question.', true);
+  const question = $('question').value; setStatus('Reviewing calculated evidence...');
   try {
     const response = await fetch(`/investigations/${investigationId}/questions`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({question}) });
-    const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'No se pudo responder');
-    $('answer').hidden = false; $('answer').innerHTML = `${renderMarkdown(data.answer)}<span class="chip">${escapeHtml(data.mode)}</span> <span class="chip">confianza ${escapeHtml(data.confidence)}</span>`; setStatus('Respuesta fundamentada disponible.');
+    const data = await response.json(); if (!response.ok) throw new Error(data.detail || 'Could not answer the question');
+    $('answer').hidden = false; $('answer').innerHTML = `${renderMarkdown(data.answer)}<span class="chip">${escapeHtml(data.mode)}</span> <span class="chip">confidence ${escapeHtml(data.confidence)}</span>`; setStatus('Evidence-based answer available.');
   } catch (error) { setStatus(error.message, true); }
 });
 
 loadStatus();
-loadHistory();

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consultor Organizacional Autonomo</title>
+    <title>Autonomous Organizational Consultant</title>
     <link rel="stylesheet" href="/ui/styles.css" />
   </head>
   <body>
@@ -12,73 +12,68 @@
         <div class="hero-copy">
           <p class="eyebrow">Organizational intelligence</p>
           <h1>Decisiones claras para <span>equipos complejos.</span></h1>
-          <p class="subtitle">Una lectura trazable de flujo, capacidad y cambio organizacional para priorizar con confianza.</p>
+          <p class="subtitle">A traceable view of flow, capacity, and organizational change to prioritize with confidence.</p>
         </div>
         <div class="hero-status">
-          <div id="environment" class="environment">Conectando...</div>
-          <p>Basado en evidencia operativa, no en suposiciones.</p>
+          <div id="environment" class="environment">Connecting...</div>
+          <p>Built on operational evidence, not assumptions.</p>
         </div>
       </header>
 
-      <section class="control-panel" aria-label="Nueva investigacion">
+      <section class="control-panel" aria-label="New investigation">
         <div class="control-copy">
-          <p class="section-label">Nueva investigacion</p>
-          <h2>Explora un escenario</h2>
-          <p>El analisis calcula primero. La narrativa usa solo evidencia ya medida.</p>
+          <p class="section-label">New investigation</p>
+          <h2>Explore a scenario</h2>
+          <p>The analysis calculates first. Narrative uses only measured evidence.</p>
         </div>
         <label>
-          Nombre de la investigacion
-          <input id="investigation-label" maxlength="80" placeholder="Ej: Escenario costo base" />
+          Investigation name
+          <input id="investigation-label" maxlength="80" placeholder="Example: Baseline cost scenario" />
         </label>
         <label>
-          Costo hora (USD)
+          Hourly cost (USD)
           <input id="hourly-cost" type="number" min="1" value="55" />
         </label>
-        <button id="investigate">Crear diagnostico</button>
+        <button id="investigate">Create diagnosis</button>
       </section>
 
-      <p id="status" class="status" role="status">Listo para analizar el banco de pruebas.</p>
-
-      <section id="history-panel" class="history-panel" hidden>
-          <div><p class="section-label">Historial de sesion</p><h2>Investigaciones disponibles</h2></div>
-        <div id="history" class="history"></div>
-      </section>
+      <p id="status" class="status" role="status">Ready to analyze the sample dataset.</p>
 
       <section id="dashboard" hidden>
         <section class="metric-grid" id="metrics"></section>
 
         <section class="layout-two">
           <article class="panel">
-            <div class="panel-heading"><p class="section-label">Capacidad y valor</p><h2>Donde se consume el esfuerzo</h2></div>
+            <div class="panel-heading"><p class="section-label">Capacity and value</p><h2>Where effort is being consumed</h2></div>
             <div id="alignment" class="matrix"></div>
           </article>
           <article class="panel">
-            <div class="panel-heading"><p class="section-label">Dependencias</p><h2>Handoffs criticos</h2></div>
+            <div class="panel-heading"><p class="section-label">Dependencies</p><h2>Critical handoffs</h2></div>
             <div id="handoffs" class="handoffs"></div>
           </article>
         </section>
 
         <section class="panel">
-          <div class="panel-heading"><p class="section-label">Decisiones recomendadas</p><h2>Hallazgos priorizados por severidad</h2></div>
+          <div class="panel-heading"><p class="section-label">Recommended decisions</p><h2>Findings prioritized by severity</h2></div>
           <div id="findings" class="finding-grid"></div>
         </section>
 
         <section class="layout-two">
           <article class="panel">
-            <div class="panel-heading"><p class="section-label">Cambio progresivo</p><h2>Cascada de horizontes</h2></div>
+            <div class="panel-heading"><p class="section-label">Progressive change</p><h2>Horizon cascade</h2></div>
             <div id="horizons" class="horizons"></div>
           </article>
           <article class="panel trace-panel">
-            <div class="panel-heading"><p class="section-label">Auditoria</p><h2>Traza de investigacion</h2></div>
+            <div class="panel-heading"><p class="section-label">Audit</p><h2>Investigation trace</h2></div>
             <ol id="trace" class="trace"></ol>
           </article>
         </section>
 
         <section class="panel question-panel">
-          <div class="panel-heading"><p class="section-label">Consulta ejecutiva</p><h2>Pregunte por una decision</h2></div>
+          <div class="panel-heading"><p class="section-label">Executive inquiry</p><h2>Ask about a decision</h2></div>
           <form id="question-form">
-            <input id="question" required minlength="3" placeholder="Ej: Por que onboarding requiere Horizonte 2?" />
-            <button>Preguntar</button>
+            <input id="question" required minlength="3" placeholder="Example: Why does onboarding require Horizon 2?" />
+            <button>Ask question</button>
           </form>
           <div id="answer" class="answer" hidden></div>
         </section>

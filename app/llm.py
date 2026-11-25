@@ -20,11 +20,11 @@ def _fallback_answer(question: str, report: dict[str, Any]) -> dict[str, Any]:
     ]
     evidence = matching or findings[:3]
     if not evidence:
-        answer = "No hay evidencia suficiente en la investigacion para responder esta pregunta."
+        answer = "There is not enough evidence in this investigation to answer that question."
     else:
-        answer = "La respuesta se basa en hallazgos calculados: " + "; ".join(
+        answer = "This answer is based on calculated findings: " + "; ".join(
             f"{finding['title']} ({finding['severity']})" for finding in evidence[:3]
-        ) + ". Revise las metricas y la traza asociada antes de ejecutar cambios."
+        ) + ". Review the related metrics and trace before making changes."
     return {
         "mode": "deterministic",
         "answer": answer,
@@ -52,12 +52,12 @@ def answer_question(question: str, report: dict[str, Any], settings: Settings) -
         "horizon_cascade": report["horizon_cascade"],
     }
     system = (
-        "Eres un consultor de reestructuracion organizacional. Responde exclusivamente en espanol y usa "
-        "solo la evidencia proporcionada. Nunca calcules ni estimes numeros nuevos, expongas datos privados "
-        "de evaluacion, ni recomiendes cambio macro si el hallazgo no tiene severidad organizacional o estrategica. "
-        "Responde de forma ejecutiva y directa: maximo 350 palabras, un titulo breve, hasta tres secciones con "
-        "listas cortas y una recomendacion final. No uses tablas Markdown, no repitas todos los hallazgos y no "
-        "inventes nombres de equipos, porcentajes o causas."
+        "You are an organizational restructuring consultant. Respond only in English and use only the "
+        "provided evidence. Never calculate or estimate new numbers, expose private evaluation data, or "
+        "recommend macro change when the finding is not organizational or strategic in severity. Respond "
+        "directly for executives: a short title, no more than three sections with short lists, and a final "
+        "recommendation, within 350 words. Do not use Markdown tables, repeat every finding, or invent team "
+        "names, percentages, or causes."
     )
     user = json.dumps({"question": question, "evidence": evidence}, ensure_ascii=False)
     payload: dict[str, Any] = {
